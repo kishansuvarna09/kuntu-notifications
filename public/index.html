@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SSE Channel Listener</title>
+</head>
+
+<body>
+    <h2>SSE Channel Listener</h2>
+    <input id="channelInput" placeholder="Enter channel ID" />
+    <button onclick="connect()">Connect</button>
+
+    <div id="status"></div>
+    <ul id="messages"></ul>
+
+    <script>
+        let source;
+
+        function connect() {
+            const channel = document.getElementById('channelInput').value;
+            if (!channel) return alert('Please enter a channel ID');
+
+            if (source) source.close();
+
+            source = new EventSource(`http://localhost:3000/notifications/${channel}`);
+            document.getElementById('status').textContent = `Connected to channel: ${channel}`;
+
+            source.onopen = () => console.log('[✅] Connection opened');
+            source.onerror = (e) => {
+                console.error('[❌] SSE error', e);
+                source.close(); // stop trying endlessly
+                document.getElementById('status').textContent = 'Disconnected';
+            };
+
+            source.onmessage = (e) => {
+                const li = document.createElement('li');
+                li.textContent = `[${new Date().toLocaleTimeString()}] ${e.data}`;
+                document.getElementById('messages').appendChild(li);
+            };
+
+            source.onerror = () => {
+                document.getElementById('status').textContent = `Disconnected from channel: ${channel}`;
+            };
+
+            return
+        }
+    </script>
+</body>
+
+</html>
