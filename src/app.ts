@@ -1,8 +1,20 @@
-import { serve } from 'bun'
-import app from './server'
+import { Hono } from 'hono'
+import { serveStatic } from 'hono/bun'
+import { cors } from 'hono/cors'
+import auth from './routes/auth'
+import notifications from './routes/notifications'
+import broadcast from './routes/broadcast'
+import { authMiddleware } from './middleware/auth'
+import type { AppVariables } from './types/context'
 
-serve({
-  fetch: app.fetch,
-  port: 3000,
-  idleTimeout: 60, // ⏱️ keep SSE alive for 60 seconds (or more)
-})
+const app = new Hono<{ Variables: AppVariables }>()
+
+app.use('*', cors())
+app.use('/*', serveStatic({ root: './public' }))
+
+app.route('/', auth)
+app.use('/notifications/*', authMiddleware)
+app.route('/', notifications)
+app.route('/', broadcast)
+
+export default app
