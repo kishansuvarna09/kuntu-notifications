@@ -2,48 +2,77 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>SSE Channel Listener</title>
+    <meta charset="UTF-8" />
+    <title>JWT SSE Channel</title>
 </head>
 
 <body>
-    <h2>SSE Channel Listener</h2>
-    <input id="channelInput" placeholder="Enter channel ID" />
+    <h2>Login</h2>
+    <input id="username" placeholder="Username" />
+    <button onclick="login()">Login</button>
+    <button id="logoutBtn" onclick="logout()" style="display: none;">Logout</button>
+
+    <h2>Connect to Channel</h2>
+    <input id="channel" placeholder="Channel ID" />
     <button onclick="connect()">Connect</button>
 
     <div id="status"></div>
     <ul id="messages"></ul>
 
     <script>
-        let source;
+        let source = null
+        async function login() {
+            const username = document.getElementById('username').value
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            })
+
+            if (res.ok) {
+                const data = await res.json()
+                document.getElementById('status').textContent = `Logged in as ${data.username}`
+                document.getElementById('logoutBtn').style.display = 'inline-block'
+            } else {
+                alert('Login failed')
+            }
+        }
 
         function connect() {
-            const channel = document.getElementById('channelInput').value;
-            if (!channel) return alert('Please enter a channel ID');
+            const channel = document.getElementById('channel').value
+            if (!channel) return alert('Enter a channel')
 
-            if (source) source.close();
+            if (source) source.close()
 
-            source = new EventSource(`http://localhost:3000/notifications/${channel}`);
-            document.getElementById('status').textContent = `Connected to channel: ${channel}`;
+            source = new EventSource(`/notifications/${channel}`)
+            document.getElementById('status').textContent = `Connected to channel "${channel}"`
 
-            source.onopen = () => console.log('[✅] Connection opened');
-            source.onerror = (e) => {
-                console.error('[❌] SSE error', e);
-                source.close(); // stop trying endlessly
-                document.getElementById('status').textContent = 'Disconnected';
-            };
-
-            source.onmessage = (e) => {
-                const li = document.createElement('li');
-                li.textContent = `[${new Date().toLocaleTimeString()}] ${e.data}`;
-                document.getElementById('messages').appendChild(li);
-            };
+            source.onmessage = e => {
+                const li = document.createElement('li')
+                li.textContent = e.data
+                document.getElementById('messages').appendChild(li)
+            }
 
             source.onerror = () => {
-                document.getElementById('status').textContent = `Disconnected from channel: ${channel}`;
-            };
+                document.getElementById('status').textContent = 'Disconnected or unauthorized'
+                source.close()
+            }
+        }
 
-            return
+        async function logout() {
+            if (source) {
+                source.close()
+                source = null
+            }
+
+            await fetch('/logout', { method: 'POST' })
+
+            // Reset UI
+            document.getElementById('status').textContent = 'Logged out'
+            document.getElementById('logoutBtn').style.display = 'none'
+            document.getElementById('messages').innerHTML = ''
+            document.getElementById('username').value = ''
+            document.getElementById('channel').value = ''
         }
     </script>
 </body>

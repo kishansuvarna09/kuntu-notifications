@@ -1,13 +1,5 @@
 ### Send a broadcast message
-POST http://localhost:3000/notifications/kuntu
-Content-Type: application/json
-
-{
-  "message": "Hello subscribers! 🚀"
-}
-
-### Send a broadcast message
-POST http://localhost:3000/notifications/kuntu
+POST http://localhost:3000/broadcast/kuntu
 Content-Type: application/json
 
 {
